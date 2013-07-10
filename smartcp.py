@@ -71,7 +71,12 @@ def build_path(path_desc, arguments):
     else:
       return path_desc['path_format']
   elif 'mapping' in path_desc:
-    return path_desc['mapping'][build_path(get(path_desc, 'key'), arguments)]
+    mapping = path_desc['mapping']
+    key = build_path(get(path_desc, 'key'), arguments)
+    if key in mapping:
+      return mapping[key]
+    else:
+      return key
   else:
     return arguments[get(path_desc, 'arg')]
 
