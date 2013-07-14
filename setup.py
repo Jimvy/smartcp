@@ -3,7 +3,7 @@
 
 import sys
 from setuptools import setup
-from __version__ import version
+from src.__version__ import version
 
 setup(name='smartcp',
   version=version,
@@ -17,7 +17,9 @@ setup(name='smartcp',
   install_requires = [
     'PyYAML',
     ],
-  py_modules=['smartcp'],
+  #py_modules=['smartcp'],
+  package_dir={'': 'src'},
+  packages=[''],
   #scripts=['smartcp.py'],
   entry_points=dict(console_scripts=['smartcp=smartcp:main', 
     'smartcp-%s=smartcp:main' % sys.version[:3]]),
