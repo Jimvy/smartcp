@@ -4,7 +4,8 @@ Smart copy
 ==========
 
 
-This is an useful utility for automating copy from source and destination that can be customised by arguments that may vary.
+This is an useful utility for automating copy from source and destination
+that can be customised by arguments that may vary.
 A good example of usage is available with
 `this repo <https://github.com/Gp2mv3/Syntheses>`_.
 
@@ -23,7 +24,7 @@ and running
 
     sudo python setup.py install
 
-You can also install the latest released version through `pip`
+You can also install the latest released version through ``pip``
 
 .. code-block:: bash
 
@@ -38,7 +39,8 @@ or ``easy_install``
 Requirements
 ~~~~~~~~~~~~
 
-It is officially only compatible with Python 3 but it should mostly work with Python 2.
+It is officially only compatible with Python 3 but
+it should mostly work with Python 2.
 
 You will also need ``PyYAML``.
 
@@ -56,8 +58,13 @@ Config file
 
 To specify which files to copy where, you need to specify a config file.
 It should use the `YAML syntax <http://en.wikipedia.org/wiki/YAML>`_.
-It contains a base path for the source, a base path for the destination and clients.
-For each client, you need to specify some arguments and how to generate the source and destination from these arguments.
+It contains a base path for the source,
+a base path for the destination and clients.
+For each client,
+you can specify some arguments
+(if no argument is given, there will be one copy but there can't be any node
+``arg``) and how to generate
+the source and destination from these arguments.
 To specify them you need to nest three types of nodes.
 
 * A ``path_format`` which can contain placeholders ``{n}``
@@ -68,32 +75,38 @@ To specify them you need to nest three types of nodes.
 
 Here is an example which copies files from ``version/subversion/file``
 to ``file-version.subversion`` while renaming ``file`` to ``b`` if it is ``a``.
+It also copies ``1/1/x`` to ``../x-1.1``.
 
 .. code-block:: yaml
 
     input_base: .
     output_base: .
     clients:
-      - name: Officiel
+      - name: Official
         arguments:
-          - [1, 2, 3]
-          - [1, 2, 3, 4, 5]
-          - [a, A, x, X]
+          subversion: [1, 2, 3]
+          version: [1, 2, 3, 4, 5]
+          file: [a, A, x, X]
         input:
           path_format: "{0}/{1}/{2}"
           parameters:
-            - arg: 0
-            - arg: 1
-            - arg: 2
+            - arg: subversion
+            - arg: version
+            - arg: file
         output:
           path_format: "{0}-{1}.{2}"
           parameters:
             - mapping:
                 a: b
               key:
-                arg: 2
-            - arg: 1
-            - arg: 0
+                arg: file
+            - arg: version
+            - arg: subversion
+      - name: Simple copy
+        input:
+          path_format: 1/1/x
+        output:
+          path_format: ../x-1.1
 
 Note the ``"`` for the path format because without it YAML won't understand
 that it is just a string.
