@@ -131,6 +131,9 @@ def smart_copy(config_file, arg_set):
     # It should not cause any problem here
     # (see if I modify config anywhere else)
     if arguments:
+      if type(arguments) != dict:
+        print_err("arguments which is `{}' should be a hash".format(arguments))
+        sys.exit(1)
       for key, value in arguments.items():
         if key in arg_set:
           # Solve the problem with non-string
