@@ -58,12 +58,15 @@ def parent_dir_exists(path):
 def up_to_date(input_path, output_path):
   return os.path.exists(output_path) and filecmp.cmp(input_path, output_path)
 
-def get(hash_map, key):
+def get(hash_map, key, raise_err = True):
   if key in hash_map:
     return hash_map[key]
   else:
-    print_err('Missing key {} in {}', key, hash_map)
-    sys.exit(1)
+    if raise_err:
+      print_err('Missing key `{}\' in `{}\''.format(key, hash_map))
+      sys.exit(1)
+    else:
+      return None
 
 def build_path(path_desc, arguments):
   if 'path_format' in path_desc:
@@ -82,20 +85,27 @@ def build_path(path_desc, arguments):
     else:
       return key
   elif 'arg' in path_desc:
-    label = path_desc['arg']
-    # Si le label est 1 et que les keys sont 'a', 'b',
-    # la valeur de arguments[1] sera indéterminée,
-    # ça dépendra de l'ordre des keys du hash. Évitons cela
-    #if type(label) == int
-    # Let's check it anyway
-    if label in arguments:
-      return arguments[label]
+    if arguments:
+      label = path_desc['arg']
+      # Si le label est 1 et que les keys sont 'a', 'b',
+      # la valeur de arguments[1] sera indéterminée,
+      # ça dépendra de l'ordre des keys du hash. Évitons cela
+      #if type(label) == int
+      # Let's check it anyway
+      if label in arguments:
+        return arguments[label]
+      else:
+        print_err("unknown label `{}', it should be in {}".
+            format(label, arguments.keys()))
+        sys.exit(1)
     else:
-      print_err("unknown label `{}', it should be in {}".
-          format(label, arguments.keys()))
+      print_err("didn't expect `arg' since \
+there is no argument for this client")
+      sys.exit(1)
   else:
     print_err("{} should have `arg', `mapping' or `parameters'".
         format(path_desc))
+    sys.exit(1)
 
 def smart_copy(config_file, arg_set):
   global indent_level
@@ -114,28 +124,35 @@ def smart_copy(config_file, arg_set):
   for client in get(config, 'clients'):
     print_verbose('Updating {}'.format(get(client, 'name')))
     indent_level += 1
-    arguments = get(client, 'arguments')
+    # If no arguments, simply means path_format do not contain parameters
+    arguments = get(client, 'arguments', False)
     # With &label and *label in YAML,
     # the arrays/hash are shared between all clients in python !!!!
     # It should not cause any problem here
     # (see if I modify config anywhere else)
-    for key, value in arguments.items():
-      if key in arg_set:
-        # Solve the problem with non-string
-        # not being compared properly with components of arg_set which are
-        # strings
-        value = [str(arg) for arg in value]
-        setting = arg_set[key]
-        if setting in value:
-          arguments[key] = [setting]
-        else:
-          # itertools.product will return an empty iterator
-          arguments[key] = []
-          # So no need to go further
-          break
-          
-    for args_items in itertools.product(*arguments.values()):
-      args = dict(zip(arguments.keys(), args_items))
+    if arguments:
+      for key, value in arguments.items():
+        if key in arg_set:
+          # Solve the problem with non-string
+          # not being compared properly with components of arg_set which are
+          # strings
+          value = [str(arg) for arg in value]
+          setting = arg_set[key]
+          if setting in value:
+            arguments[key] = [setting]
+          else:
+            # itertools.product will return an empty iterator
+            arguments[key] = []
+            # So no need to go further
+            break
+
+    # if there is no arguments we just need one loop without any arguments
+    # so [None] do the trick
+    for args_items in (itertools.product(*arguments.values()) if arguments else [None]):
+      if args_items:
+        args = dict(zip(arguments.keys(), args_items))
+      else:
+        args = None
       input_path  = os.path.join(get(config, 'input_base'),
           build_path(get(client, 'input'), args))
       if os.path.exists(input_path):
@@ -143,14 +160,14 @@ def smart_copy(config_file, arg_set):
             build_path(get(client, 'output'), args))
         if parent_dir_exists(output_path):
           if up_to_date(input_path, output_path):
-            print_verbose(u'"{}" == "{}"'.format(input_path, output_path), 2)
+            print_verbose(u'`{}\' == `{}\''.format(input_path, output_path), 2)
             # u is only for python 2
           else:
-            print_verbose(u'"{}" -> "{}"'.format(input_path, output_path))
+            print_verbose(u'`{}\' -> `{}\''.format(input_path, output_path))
             # u is only for python 2
             shutil.copyfile(input_path, output_path)
         else:
-          print_verbose(u'"{}" /\ "{}"'.format(input_path, output_path))
+          print_verbose(u'`{}\' /\ `{}\''.format(input_path, output_path))
           # u is only for python 2
           sys.exit(1)
     indent_level -= 1
