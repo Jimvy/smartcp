@@ -39,8 +39,9 @@ or ``easy_install``
 Requirements
 ~~~~~~~~~~~~
 
-It is officially only compatible with Python 3 but
-it should mostly work with Python 2.
+It is officially only compatible with Python 3 and Python 2
+but has some issues with accents for Python 2
+(Python 3 has a better unicode approach than Python 2).
 
 You will also need ``PyYAML``.
 
