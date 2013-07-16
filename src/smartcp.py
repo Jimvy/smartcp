@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function # for python 2 and stderr
-from __version__ import version
+from .__version__ import version
 import yaml
 import itertools
 import os
