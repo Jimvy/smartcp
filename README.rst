@@ -16,7 +16,7 @@ You can install it from source by cloning this repo
 
 .. code-block:: bash
 
-    git clone http//:github.com:blegat/smartcp.git
+    git clone https://github.com/blegat/smartcp.git
 
 and running
 
