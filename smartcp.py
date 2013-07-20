@@ -10,16 +10,22 @@ import filecmp
 import sys
 import getopt
 import shutil
+from subprocess import call
 
 def usage():
   print('''\
 Usage: {0} [OPTION]... [FILE]...
-Read FILE(s) and do smart copies accordingly
+Read FILE(s) and do smart copies accordingly.
 
+-q, --quiet      do not print the stdout of the command executed with -x
+                 with -qq, it does not print stderr neither
+-n, --no-copy    do not do the copy but execute the command given by -x
 -s, --set        with the syntax arg=value,
                  set the argument with lablel arg to value instead of
                  iterating over all different possible values
 -v               increment verbose level, -vv gives the most verbose output
+-x  command      execute command in the parent directory of the input
+                 before comparting the input and the output
 -h, --help       display this help and exit
     --version    output version information and exit
 
@@ -107,7 +113,7 @@ there is no argument for this client")
         format(path_desc))
     sys.exit(1)
 
-def smart_copy(config_file, arg_set):
+def smart_copy(config_file, arg_set, command, quiet, do_copy):
   global indent_level
   if config_file:
     stream = open(config_file, 'r')
@@ -121,6 +127,7 @@ def smart_copy(config_file, arg_set):
     print_err('Empty config file')
     sys.exit(1)
 
+  input_base = os.path.abspath(get(config, 'input_base'))
   for client in get(config, 'clients'):
     print_verbose('Updating {}'.format(get(client, 'name')))
     indent_level += 1
@@ -151,14 +158,27 @@ def smart_copy(config_file, arg_set):
 
     # if there is no arguments we just need one loop without any arguments
     # so [None] do the trick
+    # We need the absolute path because if command != None, we will cd
     for args_items in (itertools.product(*arguments.values()) if arguments else [None]):
       if args_items:
         args = dict(zip(arguments.keys(), args_items))
       else:
         args = None
-      input_path  = os.path.join(get(config, 'input_base'),
+      input_path  = os.path.join(input_base,
           build_path(get(client, 'input'), args))
       if os.path.exists(input_path):
+        if command:
+          os.chdir(os.path.dirname(input_path))
+          # No need to cd back because input_path is absolute
+          # since input_base is absolute
+          if quiet >= 1:
+            dev_null = open(os.devnull, 'wb')
+          exit_value = call(command, shell = True,
+              stdout = dev_null if quiet >= 1 else None,
+              stderr = dev_null if quiet >= 2 else None)
+          if exit_value != 0:
+            print_err("`{}' exited with {}. aborting".format(command, exit_value))
+            sys.exit(1)
         output_path = os.path.join(get(config, 'output_base'),
             build_path(get(client, 'output'), args))
         if parent_dir_exists(output_path):
@@ -166,9 +186,13 @@ def smart_copy(config_file, arg_set):
             print_verbose(u'`{}\' == `{}\''.format(input_path, output_path), 2)
             # u is only for python 2
           else:
-            print_verbose(u'`{}\' -> `{}\''.format(input_path, output_path))
-            # u is only for python 2
-            shutil.copyfile(input_path, output_path)
+            if do_copy:
+              print_verbose(u'`{}\' -> `{}\''.format(input_path, output_path))
+              # u is only for python 2
+              shutil.copyfile(input_path, output_path)
+            else:
+              print_verbose(u'`{}\' != `{}\''.format(input_path, output_path))
+              # u is only for python 2
         else:
           print_verbose(u'`{}\' /\ `{}\''.format(input_path, output_path))
           # u is only for python 2
@@ -191,24 +215,26 @@ def print_verbose(message, level = 1):
 
 def main():
   arg_set = {}
+  do_copy = True
+  command = None
+  quiet = 0
   global verbose
   try:
     # gnu_getopt allow opts to be after args. For
     # $ smartcp.py config.yml -v
     # gnu_getopt will consider -v as an option and getopt
     # will see it as an arg like config.yml
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "hs:v",
-        ["help", "set", "version"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "nqs:vx:h",
+        ["no-copy", "quiet", "set", "help", "version"])
   except getopt.GetoptError as err:
     print_err(str(err))
     usage()
     sys.exit(2)
   for o, a in opts:
-    if o == "-v":
-      verbose += 1
-    elif o in ("-h", "--help"):
-      usage()
-      sys.exit()
+    if o in ("-n", "--no-copy"):
+      do_copy = False
+    elif o in ("-q", "--quiet"):
+      quiet += 1
     elif o in ("-s", "--set"):
       try:
         (arg, value) = a.split("=")
@@ -216,20 +242,27 @@ def main():
         print_err("{} should have the format `arg=value'".format(a))
         sys.exit(2)
       arg_set[arg] = value
+    elif o == "-v":
+      verbose += 1
+    elif o == "-x":
+      command = a
+    elif o in ("-h", "--help"):
+      usage()
+      sys.exit()
     elif o == "--version":
       show_version()
       sys.exit()
     else:
       assert False, "unhandled option"
   if not args:
-    smart_copy(None, arg_set)
+    smart_copy(None, arg_set, command, quiet, do_copy)
   else:
     for config_file in args:
       if config_file == "-":
-        smart_copy(None, arg_set)
+        smart_copy(None, arg_set, command, quiet, do_copy)
       else:
         if os.path.exists(config_file):
-          smart_copy(config_file, arg_set)
+          smart_copy(config_file, arg_set, command, quiet, do_copy)
         else:
           print_err("{}: No such file or directory".format(config_file))
           sys.exit(1)
