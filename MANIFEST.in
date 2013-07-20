@@ -1,1 +1,1 @@
-include src/*.py
+include *.py
