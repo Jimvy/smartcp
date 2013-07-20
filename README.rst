@@ -3,7 +3,6 @@
 Smart copy
 ==========
 
-
 This is an useful utility for automating copy from source and destination
 that can be customised by arguments that may vary.
 A good example of usage is available with
