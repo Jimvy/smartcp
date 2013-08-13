@@ -109,7 +109,7 @@ def build_path(path_desc, arguments):
 there is no argument for this client")
       sys.exit(1)
   else:
-    print_err("{} should have `arg', `mapping' or `parameters'".
+    print_err("{} should have `arg', `mapping' or `path_format'".
         format(path_desc))
     sys.exit(1)
 
