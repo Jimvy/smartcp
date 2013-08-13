@@ -48,6 +48,13 @@ There is NO WARRANTY, to the extent permitted by law.
 
 Written by Benoît Legat.'''.format(program_name, version))
 
+def input_exists(path):
+  if os.path.exists(path):
+    return True
+  else:
+    print_err('There is no `{}\''.format(path))
+    return False
+
 def parent_dir_exists(path):
   # we take the absolute path to be to transform './...' in '/...'
   folder = os.path.dirname(os.path.abspath(path))
@@ -57,7 +64,7 @@ def parent_dir_exists(path):
     last = current
     current = os.path.dirname(current)
   if current != folder:
-    print_err('There is no {} in {}'.format(os.path.basename(last), current))
+    print_err('There is no `{}\' in `{}\''.format(os.path.basename(last), current))
     return False
   return True
 
@@ -166,7 +173,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
         args = None
       input_path  = os.path.join(input_base,
           build_path(get(client, 'input'), args))
-      if os.path.exists(input_path):
+      if os.path.exists(os.path.dirname(input_path)):
         if command:
           os.chdir(os.path.dirname(input_path))
           # No need to cd back because input_path is absolute
@@ -181,7 +188,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
             sys.exit(1)
         output_path = os.path.join(get(config, 'output_base'),
             build_path(get(client, 'output'), args))
-        if parent_dir_exists(output_path):
+        if input_exists(input_path) and parent_dir_exists(output_path):
           if up_to_date(input_path, output_path):
             print_verbose(u'`{}\' == `{}\''.format(input_path, output_path), 2)
             # u is only for python 2
@@ -196,7 +203,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
         else:
           print_verbose(u'`{}\' /\ `{}\''.format(input_path, output_path))
           # u is only for python 2
-          sys.exit(1)
+          #sys.exit(1)
     indent_level -= 1
   indent_level -= 1
 
@@ -265,7 +272,6 @@ def main():
           smart_copy(config_file, arg_set, command, quiet, do_copy)
         else:
           print_err("{}: No such file or directory".format(config_file))
-          sys.exit(1)
 
 if __name__ == "__main__":
     main()
