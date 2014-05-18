@@ -130,6 +130,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
     print_verbose('Using stdin')
   indent_level += 1
   config = yaml.load(stream)
+  stream.close()
   if not config:
     print_err('Empty config file')
     sys.exit(1)
