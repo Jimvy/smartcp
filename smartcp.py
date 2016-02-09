@@ -55,6 +55,17 @@ def input_exists(path):
     print_err('There is no `{}\''.format(path))
     return False
 
+def ask_yes_or_no(prompt):
+  while True:
+    s = input(prompt)
+    if len(s) == 0 or s in ["y", "Y","yes","Yes"]:
+      return True
+    elif s in ["n","N","no","No"]:
+      return False
+    else:
+      print("Please answer 'y' or 'n'.")
+>>>>>>> 845617d
+
 def parent_dir_exists(path):
   # we take the absolute path to be to transform './...' in '/...'
   folder = os.path.dirname(os.path.abspath(path))
@@ -64,7 +75,11 @@ def parent_dir_exists(path):
     last = current
     current = os.path.dirname(current)
   if current != folder:
-    print_err('There is no `{}\' in `{}\''.format(os.path.basename(last), current))
+    if ask_yes_or_no('Create {} in {} ? [Y/n]: '.format(os.path.basename(last), current)):
+      # /!\ race condition, maybe now it exists :(
+      os.makedirs(last)
+      return parent_dir_exists(path)
+    print_err('There is no {} in {}'.format(os.path.basename(last), current))
     return False
   return True
 
