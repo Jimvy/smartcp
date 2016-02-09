@@ -17,17 +17,18 @@ def usage():
 Usage: {0} [OPTION]... [FILE]...
 Read FILE(s) and do smart copies accordingly.
 
--q, --quiet      do not print the stdout of the command executed with -x
-                 with -qq, it does not print stderr neither
--n, --no-copy    do not do the copy but execute the command given by -x
--s, --set        with the syntax arg=value,
-                 set the argument with lablel arg to value instead of
-                 iterating over all different possible values
--v               increment verbose level, -vv gives the most verbose output
--x  command      execute command in the parent directory of the input
-                 before comparting the input and the output
--h, --help       display this help and exit
-    --version    output version information and exit
+-q, --quiet        do not print the stdout of the command executed with -x
+                   with -qq, it does not print stderr neither
+-n, --no-copy      do not do the copy but execute the command given by -x
+-s, --set          with the syntax arg=value,
+                   set the argument with lablel arg to value instead of
+                   iterating over all different possible values
+-v                 increment verbose level, -vv gives the most verbose output
+-x  command        execute command in the parent directory of the input
+                   before comparting the input and the output
+-g, --google-drive drive push each copied file
+-h, --help         display this help and exit
+    --version      output version information and exit
 
 With no FILE, or when FILE is -, read standard input.
 
@@ -48,13 +49,6 @@ There is NO WARRANTY, to the extent permitted by law.
 
 Written by Benoît Legat.'''.format(program_name, version))
 
-def input_exists(path):
-  if os.path.exists(path):
-    return True
-  else:
-    print_err('There is no `{}\''.format(path))
-    return False
-
 def ask_yes_or_no(prompt):
   while True:
     s = input(prompt)
@@ -64,7 +58,6 @@ def ask_yes_or_no(prompt):
       return False
     else:
       print("Please answer 'y' or 'n'.")
->>>>>>> 845617d
 
 def parent_dir_exists(path):
   # we take the absolute path to be to transform './...' in '/...'
@@ -189,7 +182,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
         args = None
       input_path  = os.path.join(input_base,
           build_path(get(client, 'input'), args))
-      if os.path.exists(os.path.dirname(input_path)):
+      if os.path.exists(input_path):
         if command:
           os.chdir(os.path.dirname(input_path))
           # No need to cd back because input_path is absolute
@@ -204,7 +197,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
             sys.exit(1)
         output_path = os.path.join(get(config, 'output_base'),
             build_path(get(client, 'output'), args))
-        if input_exists(input_path) and parent_dir_exists(output_path):
+        if parent_dir_exists(output_path):
           if up_to_date(input_path, output_path):
             print_verbose(u'`{}\' == `{}\''.format(input_path, output_path), 2)
             # u is only for python 2
@@ -213,6 +206,8 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
               print_verbose(u'`{}\' -> `{}\''.format(input_path, output_path))
               # u is only for python 2
               shutil.copyfile(input_path, output_path)
+              if google_drive:
+                call("drive push -no-prompt=true {}".format(output_path), shell = True)
             else:
               print_verbose(u'`{}\' != `{}\''.format(input_path, output_path))
               # u is only for python 2
@@ -231,6 +226,7 @@ def print_err(message):
 
 verbose = 0
 indent_level = 0
+google_drive = False
 
 def print_verbose(message, level = 1):
   if level <= verbose:
@@ -242,19 +238,22 @@ def main():
   command = None
   quiet = 0
   global verbose
+  global google_drive
   try:
     # gnu_getopt allow opts to be after args. For
     # $ smartcp.py config.yml -v
     # gnu_getopt will consider -v as an option and getopt
     # will see it as an arg like config.yml
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "nqs:vx:h",
-        ["no-copy", "quiet", "set", "help", "version"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "gnqs:vx:h",
+        ["google-drive", "no-copy", "quiet", "set", "help", "version"])
   except getopt.GetoptError as err:
     print_err(str(err))
     usage()
     sys.exit(2)
   for o, a in opts:
-    if o in ("-n", "--no-copy"):
+    if o in ("-g", "--google-drive"):
+      google_drive = True
+    elif o in ("-n", "--no-copy"):
       do_copy = False
     elif o in ("-q", "--quiet"):
       quiet += 1
