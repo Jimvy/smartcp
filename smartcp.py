@@ -100,6 +100,10 @@ def build_path(path_desc, arguments):
       return path_desc['path_format']
   elif 'mapping' in path_desc:
     mapping = path_desc['mapping']
+    mapstr = dict()
+    for k in mapping.keys():
+        mapstr[str(k)] = mapping[k]
+    mapping = mapstr
     key = build_path(get(path_desc, 'key'), arguments)
     if key in mapping:
       return mapping[key]
@@ -169,6 +173,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
           else:
             # itertools.product will return an empty iterator
             arguments[key] = []
+            print_verbose("`{}' is not in the list of values of `{}'".format(setting, key))
             # So no need to go further
             break
 
@@ -207,7 +212,8 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
               # u is only for python 2
               shutil.copyfile(input_path, output_path)
               if google_drive:
-                call("drive push -no-prompt=true {}".format(output_path), shell = True)
+                # I need to use '{}' with quote in the case there is spaces in "output_path"
+                call("drive push -no-prompt=true \"{}\"".format(output_path), shell = True)
             else:
               print_verbose(u'`{}\' != `{}\''.format(input_path, output_path))
               # u is only for python 2
@@ -215,6 +221,8 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
           print_verbose(u'`{}\' /\ `{}\''.format(input_path, output_path))
           # u is only for python 2
           #sys.exit(1)
+      else:
+        print_verbose("`{}' not found".format(input_path), 3)
     indent_level -= 1
   indent_level -= 1
 
