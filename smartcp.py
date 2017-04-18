@@ -59,6 +59,11 @@ def ask_yes_or_no(prompt):
     else:
       print("Please answer 'y' or 'n'.")
 
+def push_path(google_drive, path):
+  if google_drive:
+    # I need to use '{}' with quote in the case there is spaces in "output_path"
+    call("drive push -no-prompt=true \"{}\"".format(path), shell = True)
+
 def parent_dir_exists(path):
   # we take the absolute path to be to transform './...' in '/...'
   folder = os.path.dirname(os.path.abspath(path))
@@ -71,6 +76,7 @@ def parent_dir_exists(path):
     if ask_yes_or_no('Create {} in {} ? [Y/n]: '.format(os.path.basename(last), current)):
       # /!\ race condition, maybe now it exists :(
       os.makedirs(last)
+      push_path(google_drive, path)
       return parent_dir_exists(path)
     print_err('There is no {} in {}'.format(os.path.basename(last), current))
     return False
@@ -211,9 +217,7 @@ def smart_copy(config_file, arg_set, command, quiet, do_copy):
               print_verbose(u'`{}\' -> `{}\''.format(input_path, output_path))
               # u is only for python 2
               shutil.copyfile(input_path, output_path)
-              if google_drive:
-                # I need to use '{}' with quote in the case there is spaces in "output_path"
-                call("drive push -no-prompt=true \"{}\"".format(output_path), shell = True)
+              push_path(google_drive, output_path)
             else:
               print_verbose(u'`{}\' != `{}\''.format(input_path, output_path))
               # u is only for python 2
